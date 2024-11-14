@@ -24,13 +24,9 @@ wlan = connect_wifi()
 
 # Run main.py after setup
 try:
-    print('[BOOT] WiFi connected, attempting to read main.py...')
+    print('[BOOT] WiFi connected, checking main.py...')
     with open('main.py', 'r') as f:
-        main_content = f.read()
-        print('[BOOT] Main.py content:')
-        print('---BEGIN MAIN.PY---')
-        print(main_content)
-        print('---END MAIN.PY---')
+        print('[BOOT] Main.py file found')
     
     print('[BOOT] Importing main module...')
     import main

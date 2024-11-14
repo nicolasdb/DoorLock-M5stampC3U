@@ -14,9 +14,32 @@ last_press = 0
 door_timer = 0
 status_callback = None  # Callback function to update MQTT status
 
+# Door timeout configuration
+DOOR_OPEN_DURATION = 3000  # 3 seconds door open timeout
+
 def set_led(r, g, b):
     np[0] = (r, g, b)
     np.write()
+
+def set_wifi_status_led(is_connected):
+    """
+    Set LED color based on WiFi connection status
+    Blue: Disconnected or connecting
+    Green: Door Open
+    Red: Door Closed
+    """
+    if not is_connected:
+        # Pulsing blue when WiFi is disconnected
+        for brightness in range(0, 256, 5):
+            set_led(0, 0, min(brightness, 255))
+            time.sleep(0.01)
+        for brightness in range(255, -1, -5):
+            set_led(0, 0, max(brightness, 0))
+            time.sleep(0.01)
+    elif relay.value() == 1:
+        set_led(0, 255, 0)  # Green for open door
+    else:
+        set_led(255, 0, 0)  # Red for closed door
 
 def set_status_callback(callback):
     global status_callback
@@ -31,6 +54,7 @@ def open_door():
     relay.value(1)  # Open door
     set_led(0, 255, 0)  # Green LED
     door_timer = time.ticks_ms()  # Start door timer
+    print(f"[DOOR] Timer started at {door_timer}, will close after {DOOR_OPEN_DURATION}ms")
     if status_callback:
         status_callback(1)  # Notify MQTT about door open
 
@@ -55,9 +79,14 @@ def handle_button(pin):
 
 def check_door_timeout():
     global door_timer
-    if door_timer > 0 and time.ticks_diff(time.ticks_ms(), door_timer) >= 3000:
-        print("[DOOR] Door timeout reached, closing door")
-        close_door()
+    if door_timer > 0:
+        current_time = time.ticks_ms()
+        time_diff = time.ticks_diff(current_time, door_timer)
+        if time_diff >= DOOR_OPEN_DURATION:
+            print(f"[DOOR] Door timeout reached. Time open: {time_diff}ms")
+            close_door()
+        elif time_diff % 1000 == 0:  # Log every second
+            print(f"[DOOR] Door has been open for {time_diff}ms")
 
 def flash_error():
     for _ in range(3):

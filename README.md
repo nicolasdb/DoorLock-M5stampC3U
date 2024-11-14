@@ -14,6 +14,7 @@
 - Server-based URL check for door opening
 - Robust error handling and logging
 - Configurable automatic door closing timer
+- Reliable MQTT connection management
 
 ## Credentials Setup
 To set up your credentials, create a `src/credentials.py` file with the following template:
@@ -53,6 +54,12 @@ SERVER_CHECK_URL = "https://your-server.com/check"
    - Configurable check interval and timeout
    - Independent background thread for server checks
 
+3. MQTT Connection Management (`mqtt_client.py`)
+   - Automatic connection maintenance with 120-second keepalive
+   - Proactive connection health checks every 45 seconds
+   - Automatic reconnection on connection loss
+   - Detailed connection status logging
+
 ## Instructions
 1. Ensure you have MicroPython installed and configured on your M5stamp-C3U device.
 2. Copy the following files to the device:
@@ -91,6 +98,14 @@ Common configurations:
 
 The system checks the door timer every 100ms for precise timing and includes detailed logging of door open/close events.
 
+## System Timings
+The system operates on several timing intervals for optimal performance:
+- Door check: Every 100ms for precise door control
+- MQTT keepalive: 120 seconds (broker timeout)
+- MQTT health check: Every 45 seconds (proactive connection maintenance)
+- System health check: Every 30 seconds
+- Daily system maintenance reboot (configurable)
+
 ## NeoPixel Indicators
 - Blue (pulsing): Connecting to WiFi
 - Green: Door Open
@@ -102,6 +117,7 @@ The system checks the door timer every 100ms for precise timing and includes det
 - Check server URL accessibility
 - Monitor console output for connection and error messages
 - Check door timing logs for precise open/close timing information
+- Review MQTT connection logs for connectivity issues
 
 ## Security Recommendations
 - Use strong, unique passwords
