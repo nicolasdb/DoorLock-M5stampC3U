@@ -2,10 +2,16 @@
 import time
 import sys
 import machine
-import mqtt_client
 import door_control
 import wifi_manager
 import url_client
+from time import sleep
+
+# Initialize watchdog with 30 second timeout
+watchdog = machine.WDT(timeout=30000)  # 30 seconds
+
+MAX_WIFI_RETRIES = 5
+wifi_retry_count = 0
 
 class SystemManager:
     def __init__(self, reboot_interval=24 * 60 * 60):  # Default 24 hours
@@ -67,38 +73,20 @@ def run():
         # Initialize door control (sets up button interrupt)
         door_control.initialize()
         
-        # Connect to MQTT and set up callbacks
-        client = mqtt_client.connect_mqtt(door_control)
-        
-        # Publish initial status
-        mqtt_client.publish_status(client, door_control.get_door_state())
-        
         print('[MAIN] Setup complete, entering main loop...')
         
         last_health_check = time.ticks_ms()
-        last_mqtt_check = time.ticks_ms()
         HEALTH_CHECK_INTERVAL = 30000  # 30 seconds in milliseconds
         
         while True:
             try:
+                # Feed the watchdog to prevent reset
+                watchdog.feed()
+                
                 # Check door timeout more frequently
                 door_control.check_door_timeout()
                 
                 current_time = time.ticks_ms()
-                
-                # Check MQTT connection periodically
-                if time.ticks_diff(current_time, last_mqtt_check) >= mqtt_client.MQTT_CHECK_INTERVAL:
-                    if not mqtt_client.check_mqtt_connection(client):
-                        # If MQTT reconnection fails, try to reconnect from scratch
-                        client = mqtt_client.connect_mqtt(door_control)
-                    last_mqtt_check = current_time
-                
-                # Check MQTT messages if connected
-                try:
-                    client.check_msg()
-                except Exception as e:
-                    if str(e) != "-1":  # Ignore expected ping timeout errors
-                        print(f"[MAIN] MQTT message check error: {e}")
                 
                 # Only do system health check every 30 seconds
                 if time.ticks_diff(current_time, last_health_check) >= HEALTH_CHECK_INTERVAL:
