@@ -12,7 +12,6 @@ np = neopixel.NeoPixel(Pin(2), 1)
 # Global state
 last_press = 0
 door_timer = 0
-status_callback = None  # Callback function to update MQTT status
 
 # Door timeout configuration
 DOOR_OPEN_DURATION = 3000  # 3 seconds door open timeout
@@ -41,10 +40,6 @@ def set_wifi_status_led(is_connected):
     else:
         set_led(255, 0, 0)  # Red for closed door
 
-def set_status_callback(callback):
-    global status_callback
-    status_callback = callback
-
 def get_door_state():
     return relay.value()
 
@@ -55,8 +50,6 @@ def open_door():
     set_led(0, 255, 0)  # Green LED
     door_timer = time.ticks_ms()  # Start door timer
     print(f"[DOOR] Timer started at {door_timer}, will close after {DOOR_OPEN_DURATION}ms")
-    if status_callback:
-        status_callback(1)  # Notify MQTT about door open
 
 def close_door():
     global door_timer
@@ -64,8 +57,6 @@ def close_door():
     relay.value(0)  # Close door
     set_led(255, 0, 0)  # Red LED
     door_timer = 0
-    if status_callback:
-        status_callback(0)  # Notify MQTT about door closed
 
 def handle_button(pin):
     global last_press
