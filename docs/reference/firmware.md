@@ -1,6 +1,8 @@
 # Firmware reference
 
-## Hardware (M5Stamp-C3U)
+## Hardware (M5Stamp-C3U, or generic ESP32-C3 Super Mini — same SoC)
+
+![pinout](esp32c3-super-mini_pinout.png)
 
 | Peripheral | Pin | Notes |
 |---|---|---|
@@ -18,7 +20,7 @@
 | `wifi_manager.py` | WiFi connect/reconnect with exponential backoff |
 | `url_client.py` | Polls the backend, verifies the pairing signature |
 | `credentials.example.py` | Template for WiFi + pairing settings |
-| `install.py` | Uploads all `.py` files via `ampy` |
+| `install.py` | Uploads all `.py` files via `mpremote` |
 | `firmware/flash.py`, `firmware/*.bin` | MicroPython image + flash script |
 
 ## `credentials.py` settings

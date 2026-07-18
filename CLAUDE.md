@@ -4,7 +4,8 @@ Guidance for AI assistants (and new contributors) working on this repo.
 
 ## What this is
 
-MicroPython firmware for an M5Stamp-C3U (ESP32-C3) door controller. It
+MicroPython firmware for an ESP32-C3 door controller (M5Stamp-C3U or
+generic ESP32-C3 Super Mini — same SoC). It
 polls its paired backend (`nicolasdb/door`) and fires the door relay on a
 cryptographically verified "open". The backend holds all policy; this
 device is deliberately dumb — see `docs/explanation/design.md`.
@@ -31,8 +32,12 @@ device is deliberately dumb — see `docs/explanation/design.md`.
   implementation in `url_client.py`), `uhashlib`/`ubinascii`/`urequests`
   instead of the stdlib, `_thread` for background work, and tight RAM.
   Test changes on a real board — there is no emulator step in this repo.
-- `install.py` uploads every `*.py` in the repo root to the device; keep
-  the root clean of anything that shouldn't land on the board.
+- Flashing/upload uses `esptool` + `mpremote`, not the MicroPico VS Code
+  extension — MicroPico's connect handshake doesn't work on native-USB
+  ESP32-C3 boards. See `docs/how-to/flash-and-install.md`.
+- `install.py` uploads every `*.py` in the repo root to the device via
+  `mpremote`; keep the root clean of anything that shouldn't land on the
+  board.
 
 ## Documentation
 
