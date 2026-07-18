@@ -164,3 +164,23 @@ Manual fallback:
 
 Repeat steps 6–7 only (no re-flash needed). There is no over-the-air
 update: you need the USB cable each time.
+
+**If the device is already running** (background thread from
+`url_client.py` active), `mpremote cp`/`exec` can reliably fail to enter
+the raw REPL at all — confirmed even a bare `exec "print(1+1)"` blocked
+for 10+ seconds straight. This isn't a timing race to retry through; the
+running background poll loop starves REPL/UART access. Workarounds, in
+order of preference:
+
+1. Power-cycle the device, then race the upload immediately — only
+   works if your upload command has near-zero startup latency (keep the
+   container/venv session already active; a cold `distrobox-enter` +
+   venv activation adds 1-2s and will lose the race every time).
+2. Temporarily take the device out of WiFi range (or disable the AP)
+   before power-cycling. `boot.py` then loops retrying the WiFi
+   connection forever, so the background thread never starts and REPL
+   access stays open indefinitely — update files, then restore WiFi.
+3. If neither works, do a full re-flash (step 3) to force a clean stop,
+   then re-run steps 6–7. Nothing on the host is lost — only on-device
+   state. This is the guaranteed-but-heaviest option, not the default —
+   a routine change like updating `DOOR_SERVER_URL` doesn't need it.
