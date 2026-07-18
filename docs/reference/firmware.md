@@ -6,7 +6,7 @@
 
 | Peripheral | Pin | Notes |
 |---|---|---|
-| Relay | GPIO 1 | `1` = door open, `0` = closed; starts closed |
+| Relay | GPIO 1 | `1` = door open, `0` = closed; starts closed. Requires an **active-high** relay module (see note below) |
 | Push-button | GPIO 9 | Internal pull-up, falling-edge IRQ, 300 ms debounce |
 | NeoPixel | GPIO 2 | 1 LED |
 
@@ -72,6 +72,31 @@ verifies. A 200 without a valid signature is logged
 | Blue (pulsing) | Connecting to WiFi |
 | Red | Connected, door closed |
 | Green | Door open |
+
+## Relay module polarity
+
+`door_control.py` drives GPIO1 with a `RELAY_ACTIVE_LOW` flag
+(default `False`) instead of writing raw pin values, because relay
+modules vary and this is a classic wiring trap:
+
+- **Active-high modules** trigger on 3.3V/HIGH and idle on 0V/LOW — this
+  is what the ESP32-C3 can drive directly and what this firmware assumes
+  by default.
+- **Active-low modules** trigger on LOW and need a solid HIGH (often
+  close to 5V) to register idle. Many cheap bare-transistor relay boards
+  fall in this category, and their "HIGH" threshold sits *above* the
+  ESP32-C3's 3.3V GPIO output — so 3.3V reads as ambiguous/LOW to them
+  and the relay stays permanently energized no matter what the firmware
+  writes. There is no code fix for this: either use a level shifter to
+  drive true 5V logic, or swap in an active-high (3.3V-logic-compatible)
+  module.
+
+**Before wiring a new relay module**, verify its trigger polarity by hand:
+disconnect the ESP32, then briefly touch the module's signal (IN) pin to
+3.3V, 5V, and GND in turn (module still powered) and observe which
+levels engage the relay. Set `RELAY_ACTIVE_LOW` in `door_control.py` to
+match, and confirm the module also reads a 3.3V HIGH cleanly if you're
+using active-high — some modules need the full 5V rail even to trigger.
 
 ## Failure behavior
 
