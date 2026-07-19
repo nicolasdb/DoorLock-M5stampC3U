@@ -1,2 +1,3 @@
 credentials.py
 webrepl_cfg.py
+*.pyc
