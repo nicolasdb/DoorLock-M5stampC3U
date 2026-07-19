@@ -59,6 +59,12 @@ def get_door_state():
 
 def open_door():
     global door_timer
+    if _relay_active:
+        # Already open: a poll interval faster than the backend's open
+        # window can see "open" more than once per physical trigger.
+        # Ignoring repeats keeps DOOR_OPEN_DURATION as the one source of
+        # truth for how long the relay stays energized.
+        return
     print("[DOOR] Opening door...")
     _drive_relay(True)  # Open door
     set_led(0, 255, 0)  # Green LED

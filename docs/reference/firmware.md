@@ -14,7 +14,7 @@
 
 | File | Purpose |
 |---|---|
-| `boot.py` | Connects WiFi, then hands off to `main.py` |
+| `boot.py` | Forces relay closed, 3 s grace window (safe-mode button / mpremote access), connects WiFi, then hands off to `main.py` |
 | `main.py` | Main loop: watchdog, health checks, door timeout |
 | `door_control.py` | Relay + NeoPixel + physical button |
 | `wifi_manager.py` | WiFi connect/reconnect with exponential backoff |
@@ -56,9 +56,10 @@ verifies. A 200 without a valid signature is logged
 
 | What | Value | Where |
 |---|---|---|
-| Backend poll interval | 3 s | `url_client.py` `check_interval` |
+| Boot grace window (mpremote access / safe-mode button) | 3 s | `boot.py` |
+| Backend poll interval | 1 s sleep (+ ~1.3 s HTTPS overhead ≈ 2.3 s real cadence) | `url_client.py` `check_interval` |
 | Request timeout | 5 s | `url_client.py` `timeout` |
-| Door auto-close | 3000 ms | `door_control.py` `DOOR_OPEN_DURATION` |
+| Door auto-close | 3000 ms, fixed — repeat "open" signals while already open are ignored, not extended | `door_control.py` `DOOR_OPEN_DURATION` / `open_door()` |
 | Door-timeout check | every 100 ms | `main.py` main loop |
 | System health check | every 30 s | `main.py` `HEALTH_CHECK_INTERVAL` |
 | Hardware watchdog | 30 s | `main.py` `machine.WDT` |

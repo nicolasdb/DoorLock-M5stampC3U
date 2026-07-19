@@ -172,15 +172,30 @@ for 10+ seconds straight. This isn't a timing race to retry through; the
 running background poll loop starves REPL/UART access. Workarounds, in
 order of preference:
 
-1. Power-cycle the device, then race the upload immediately — only
-   works if your upload command has near-zero startup latency (keep the
-   container/venv session already active; a cold `distrobox-enter` +
-   venv activation adds 1-2s and will lose the race every time).
-2. Temporarily take the device out of WiFi range (or disable the AP)
+1. **Grace period (firmware ≥ this commit): power-cycle and run the
+   upload within ~3 s.** `boot.py` now waits 3 seconds before importing
+   `main`, and `mpremote` action commands auto-interrupt during that
+   window — keep the venv session already active so the command starts
+   instantly; a cold shell/container start eats the window. This is the
+   only workaround confirmed to actually land an upload reliably.
+2. **If that misses the window, don't retry-loop it — do a full
+   re-flash instead** (step 3), then re-run steps 6–7. Nothing on the
+   host is lost, only on-device state. Re-flashing wipes the
+   filesystem, so there's no running `main.py` to fight and no race —
+   the port comes up idle and `mpremote`/`install.py` just work.
+3. Temporarily take the device out of WiFi range (or disable the AP)
    before power-cycling. `boot.py` then loops retrying the WiFi
    connection forever, so the background thread never starts and REPL
    access stays open indefinitely — update files, then restore WiFi.
-3. If neither works, do a full re-flash (step 3) to force a clean stop,
-   then re-run steps 6–7. Nothing on the host is lost — only on-device
-   state. This is the guaranteed-but-heaviest option, not the default —
-   a routine change like updating `DOOR_SERVER_URL` doesn't need it.
+
+**A GPIO9-button "safe mode" that skips `main.py` was tried and
+abandoned** — don't reintroduce it. The idea (hold the door/BOOT button
+after power-on to force an early exit before the background thread
+starts) is sound in principle, but `mpremote` soft-resets the board
+before *every* action command by default (`ensure_raw_repl(soft_reset=
+True)`), which re-runs `boot.py` and re-enters the safe-mode branch
+before the raw-REPL handshake can complete — an unwinnable loop, not a
+timing race worth retrying. `mpremote connect ... resume cp ...`
+(skipping the soft-reset) was also tried against an idle safe-mode REPL
+and still hung. If this is revisited, it needs to be proven against a
+real board first, not merely reasoned through.

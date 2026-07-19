@@ -26,7 +26,7 @@ class URLClient:
         server_url=credentials.DOOR_SERVER_URL + "/check",
         device_id=credentials.DEVICE_ID,
         device_secret=credentials.DEVICE_SECRET,
-        check_interval=3,
+        check_interval=1,
         timeout=5,
     ):
         """

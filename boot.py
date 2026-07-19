@@ -1,6 +1,25 @@
 # boot.py
+import machine
 import network
 import time
+
+# Fail closed before anything else: relay on GPIO1 is active-high.
+machine.Pin(1, machine.Pin.OUT).value(0)
+
+# Grace period: gives mpremote a window to interrupt and enter raw REPL
+# before the background poll thread starts and starves USB access.
+# Safe mode: GPIO9 is a strapping pin, so holding it *during* power-on
+# enters ROM download mode instead — press and hold it right *after*
+# reset, any time within this window, to skip main.py and keep a clean
+# REPL for uploads.
+print('[BOOT] Grace period (3s): press door/BOOT button now for safe mode...')
+_btn = machine.Pin(9, machine.Pin.IN, machine.Pin.PULL_UP)
+for _ in range(30):
+    if _btn.value() == 0:
+        print('[BOOT] SAFE MODE: button pressed, skipping main.py (relay closed)')
+        raise SystemExit
+    time.sleep(0.1)
+
 import credentials
 
 def connect_wifi():
