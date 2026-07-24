@@ -2,16 +2,31 @@
 from machine import Pin
 import neopixel
 import time
+from pins import RELAY_PIN, BUTTON_PIN, NEOPIXEL_PIN
 
 # Hardware setup
-relay = Pin(1, Pin.OUT)
-relay.value(0)  # Start with door closed
-button = Pin(9, Pin.IN, Pin.PULL_UP)
-np = neopixel.NeoPixel(Pin(2), 1)
+RELAY_ACTIVE_LOW = False  # this relay module triggers on GPIO HIGH
+
+relay = Pin(RELAY_PIN, Pin.OUT)
+button = Pin(BUTTON_PIN, Pin.IN, Pin.PULL_UP)
+np = neopixel.NeoPixel(Pin(NEOPIXEL_PIN), 1)
 
 # Global state
 last_press = 0
 door_timer = 0
+_relay_active = False  # logical state: True = door open / relay energized
+
+
+def _drive_relay(active):
+    global _relay_active
+    _relay_active = active
+    if RELAY_ACTIVE_LOW:
+        relay.value(0 if active else 1)
+    else:
+        relay.value(1 if active else 0)
+
+
+_drive_relay(False)  # Start with door closed
 
 # Door timeout configuration
 DOOR_OPEN_DURATION = 3000  # 3 seconds door open timeout
@@ -35,18 +50,24 @@ def set_wifi_status_led(is_connected):
         for brightness in range(255, -1, -5):
             set_led(0, 0, max(brightness, 0))
             time.sleep(0.01)
-    elif relay.value() == 1:
+    elif _relay_active:
         set_led(0, 255, 0)  # Green for open door
     else:
         set_led(255, 0, 0)  # Red for closed door
 
 def get_door_state():
-    return relay.value()
+    return 1 if _relay_active else 0
 
 def open_door():
     global door_timer
+    if _relay_active:
+        # Already open: a poll interval faster than the backend's open
+        # window can see "open" more than once per physical trigger.
+        # Ignoring repeats keeps DOOR_OPEN_DURATION as the one source of
+        # truth for how long the relay stays energized.
+        return
     print("[DOOR] Opening door...")
-    relay.value(1)  # Open door
+    _drive_relay(True)  # Open door
     set_led(0, 255, 0)  # Green LED
     door_timer = time.ticks_ms()  # Start door timer
     print(f"[DOOR] Timer started at {door_timer}, will close after {DOOR_OPEN_DURATION}ms")
@@ -54,7 +75,7 @@ def open_door():
 def close_door():
     global door_timer
     print("[DOOR] Closing door...")
-    relay.value(0)  # Close door
+    _drive_relay(False)  # Close door
     set_led(255, 0, 0)  # Red LED
     door_timer = 0
 
@@ -63,7 +84,7 @@ def handle_button(pin):
     now = time.ticks_ms()
     if time.ticks_diff(now, last_press) > 300:  # Debounce
         last_press = now
-        if relay.value() == 0:  # If door is closed
+        if not _relay_active:  # If door is closed
             open_door()
         else:
             close_door()
@@ -85,7 +106,7 @@ def flash_error():
         time.sleep(0.2)
         set_led(0, 0, 0)
         time.sleep(0.2)
-    set_led(255, 0, 0) if relay.value() == 0 else set_led(0, 255, 0)
+    set_led(255, 0, 0) if not _relay_active else set_led(0, 255, 0)
 
 def initialize():
     print("[DOOR] Initializing door control...")

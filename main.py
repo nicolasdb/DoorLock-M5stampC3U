@@ -2,6 +2,14 @@
 import time
 import sys
 import machine
+
+# Safe mode guard: main.py auto-runs after boot.py exits, so the check in
+# boot.py alone is not enough. Must run before the WDT below is created —
+# an unfed watchdog in safe mode would reboot-loop the device.
+if machine.Pin(9, machine.Pin.IN, machine.Pin.PULL_UP).value() == 0:
+    print('[MAIN] SAFE MODE: button held, aborting before watchdog init')
+    sys.exit()
+
 import door_control
 import wifi_manager
 import url_client
