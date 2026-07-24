@@ -6,9 +6,10 @@
 
 | Peripheral | Pin | Notes |
 |---|---|---|
-| Relay | GPIO 1 | `1` = door open, `0` = closed; starts closed. Requires an **active-high** relay module (see note below) |
+| Relay | GPIO 5 | `1` = door open, `0` = closed; starts closed. Requires an **active-high** relay module (see note below) |
 | Push-button | GPIO 9 | Internal pull-up, falling-edge IRQ, 300 ms debounce |
 | NeoPixel | GPIO 2 | 1 LED |
+| Relay 2 (planned) | GPIO 6 | Reserved, not implemented yet |
 
 ## Files
 
@@ -76,7 +77,7 @@ verifies. A 200 without a valid signature is logged
 
 ## Relay module polarity
 
-`door_control.py` drives GPIO1 with a `RELAY_ACTIVE_LOW` flag
+`door_control.py` drives GPIO5 with a `RELAY_ACTIVE_LOW` flag
 (default `False`) instead of writing raw pin values, because relay
 modules vary and this is a classic wiring trap:
 

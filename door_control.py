@@ -2,13 +2,14 @@
 from machine import Pin
 import neopixel
 import time
+from pins import RELAY_PIN, BUTTON_PIN, NEOPIXEL_PIN
 
 # Hardware setup
 RELAY_ACTIVE_LOW = False  # this relay module triggers on GPIO HIGH
 
-relay = Pin(1, Pin.OUT)
-button = Pin(9, Pin.IN, Pin.PULL_UP)
-np = neopixel.NeoPixel(Pin(2), 1)
+relay = Pin(RELAY_PIN, Pin.OUT)
+button = Pin(BUTTON_PIN, Pin.IN, Pin.PULL_UP)
+np = neopixel.NeoPixel(Pin(NEOPIXEL_PIN), 1)
 
 # Global state
 last_press = 0

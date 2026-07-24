@@ -38,10 +38,10 @@ NPN (e.g. 2N2222 / 2N3904)
      │
    [R1 10kΩ]
      │
-GPIO1 (ESP32-C3)
+GPIO5 (ESP32-C3)
 ```
 
-- **R1** (~10kΩ): GPIO1 → transistor base. Limits base current.
+- **R1** (~10kΩ): GPIO5 → transistor base. Limits base current.
 - **R2** (~4.7kΩ): 5V → transistor collector, and collector → relay IN
   pin. Pulls the relay's IN pin to a clean 5V when the transistor is off.
 - **Emitter** → GND, shared with the ESP32's GND (common ground is
@@ -51,12 +51,12 @@ GPIO1 (ESP32-C3)
 
 ### Truth table
 
-| GPIO1 | Transistor | Collector / relay IN | Relay module (active-low) |
+| GPIO5 | Transistor | Collector / relay IN | Relay module (active-low) |
 |---|---|---|---|
 | LOW (0V) | off | pulled to 5V by R2 | idle (5V clears its HIGH threshold) |
 | HIGH (3.3V) | on, saturated | pulled to ~0V (GND) | active (true LOW) |
 
-Net effect: GPIO1 HIGH → relay energized, GPIO1 LOW → relay idle — i.e.
+Net effect: GPIO5 HIGH → relay energized, GPIO5 LOW → relay idle — i.e.
 from the firmware's point of view this behaves exactly like an
 **active-high** relay. No `door_control.py` changes needed beyond the
 default `RELAY_ACTIVE_LOW = False`.

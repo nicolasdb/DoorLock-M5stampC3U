@@ -90,7 +90,7 @@ for _ in range(4):
 
 ## 4. Wire the board
 
-Relay → GPIO 1, push-button → GPIO 9, NeoPixel → GPIO 2. See
+Relay → GPIO 5, push-button → GPIO 9, NeoPixel → GPIO 2. See
 [`docs/reference/firmware.md`](../reference/firmware.md) for details.
 GPIO 9 is a strapping pin (boot-mode select) — don't hold the button
 down while powering the board on, or it boots into download mode
