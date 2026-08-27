@@ -52,6 +52,44 @@ open because the firmware crashed is a security incident. The physical
 button remains as the offline override, deliberately independent of all
 network code.
 
+## Why the badge reader shares a GPIO with relay 1
+
+Chan2 (the main gate) needed a way to know when a badge was accepted, so
+the badge-reader relay could also open the gate — today it only opens
+the office door via its own hardware path, independent of this
+firmware. The reader's signal line is already electrically tied to the
+same net as the office-door relay trigger (see
+`docs/bticino_door_lock.png`), through a 5.6kΩ divider that also happens
+to limit any contention current to sub-mA — safe enough to reuse rather
+than isolate.
+
+The alternative — a dedicated GPIO for the badge input — is strictly
+safer (no mode-switching, no shared-pin reasoning) and was the first
+recommendation. It was set aside because the reader relay holds its
+contact for ~30s per accepted badge: at a 100ms poll tick that's a huge
+margin, not a tight race, so the mode-switching risk is small and the
+wiring savings (one fewer wire into an already-tight enclosure) won out.
+Consequences accepted for this tradeoff:
+
+- GPIO5 must spend nearly all its life as `Pin.OUT` driven LOW (the
+  fail-closed rest state) and only flip to `Pin.IN` for the instant of a
+  sample — never linger there, since an unpulled or externally-floated
+  input during that window is a real unintended-unlock path.
+- Sampling is polled, not IRQ-driven — MicroPython's `Pin.irq()` needs
+  the pin parked in `Pin.IN` continuously, which conflicts with "rest
+  state is OUT".
+- Badge sampling is skipped entirely whenever chan1 is already driven
+  open by another trigger (backend/Discord), since GPIO5 is an output
+  for that whole hold and a mode switch mid-hold would cut it short.
+- All access to GPIO5 (badge poll, button, backend-triggered opens) goes
+  through one lock (`door_control.pin1_lock`), since the backend poll
+  runs on a separate thread and MicroPython doesn't guarantee safe
+  concurrent access to a `Pin`'s mode across threads.
+
+If a future reader/relay pairing holds its contact for less than a
+second or two, this tradeoff should be revisited — dedicate a separate
+GPIO instead of narrowing the polling margin.
+
 ## Known gaps
 
 - **No OTA updates** — changing firmware means USB access to the board.

@@ -93,6 +93,7 @@ def run():
                 
                 # Check door timeout more frequently
                 door_control.check_door_timeout()
+                door_control.poll_badge()
                 
                 current_time = time.ticks_ms()
                 

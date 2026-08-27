@@ -6,10 +6,10 @@
 
 | Peripheral | Pin | Notes |
 |---|---|---|
-| Relay | GPIO 5 | `1` = door open, `0` = closed; starts closed. Requires an **active-high** relay module (see note below) |
-| Push-button | GPIO 9 | Internal pull-up, falling-edge IRQ, 300 ms debounce |
+| Relay 1 (office door) | GPIO 5 | `1` = open, `0` = closed; starts closed. Requires an **active-high** relay module (see note below). Also doubles as the RFID badge-reader input — see below |
+| Relay 2 (main gate) | GPIO 6 | Output only, same polarity as relay 1; starts closed |
+| Push-button | GPIO 9 | Internal pull-up, falling-edge IRQ, 300 ms debounce, controls office door only |
 | NeoPixel | GPIO 2 | 1 LED |
-| Relay 2 (planned) | GPIO 6 | Reserved, not implemented yet |
 
 ## Files
 
@@ -60,8 +60,9 @@ verifies. A 200 without a valid signature is logged
 | Boot grace window (mpremote access / safe-mode button) | 3 s | `boot.py` |
 | Backend poll interval | 1 s sleep (+ ~1.3 s HTTPS overhead ≈ 2.3 s real cadence) | `url_client.py` `check_interval` |
 | Request timeout | 5 s | `url_client.py` `timeout` |
-| Door auto-close | 3000 ms, fixed — repeat "open" signals while already open are ignored, not extended | `door_control.py` `DOOR_OPEN_DURATION` / `open_door()` |
+| Door auto-close | 3000 ms, fixed — repeat "open" signals while already open are ignored, not extended | `door_control.py` `DOOR_OPEN_DURATION` / `open_channel()` |
 | Door-timeout check | every 100 ms | `main.py` main loop |
+| Badge line poll | every 100 ms, skipped while chan1 already open | `main.py` main loop → `door_control.py` `poll_badge()` |
 | System health check | every 30 s | `main.py` `HEALTH_CHECK_INTERVAL` |
 | Hardware watchdog | 30 s | `main.py` `machine.WDT` |
 | Maintenance reboot | every 24 h | `main.py` `SystemManager` |
@@ -99,6 +100,24 @@ disconnect the ESP32, then briefly touch the module's signal (IN) pin to
 levels engage the relay. Set `RELAY_ACTIVE_LOW` in `door_control.py` to
 match, and confirm the module also reads a 3.3V HIGH cleanly if you're
 using active-high — some modules need the full 5V rail even to trigger.
+
+## Badge reader input (shared with relay 1)
+
+The RFID/parlophone module's own relay closes its `C`/`NO` contact for
+~30s on an accepted badge, feeding GPIO5 through a 5.6kΩ divider (see
+`docs/bticino_door_lock.png`). GPIO5 is normally the office-door relay
+output; `door_control.poll_badge()` briefly reconfigures it as
+`Pin.IN, Pin.PULL_DOWN` once per loop tick to sample that line, then
+restores it to `Pin.OUT` driven LOW before returning. On a rising edge it
+opens the gate (chan2) — the office door itself is already opened
+directly by the reader module's own relay, independent of this firmware.
+
+This is skipped entirely while chan1 is already driven open (e.g. a
+backend/Discord-triggered office open), since GPIO5 is an output for the
+whole duration of that hold and must not be interrupted by a mode
+switch. All access to GPIO5's mode/value is serialized through
+`door_control.pin1_lock`, since the main loop (badge poll, button) and
+the `url_client` background thread can both want to touch it.
 
 ## Failure behavior
 

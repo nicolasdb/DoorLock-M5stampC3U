@@ -2,10 +2,11 @@
 import machine
 import network
 import time
-from pins import RELAY_PIN, BUTTON_PIN
+from pins import RELAY_PIN, RELAY2_PIN, BUTTON_PIN
 
-# Fail closed before anything else: relay is active-high.
+# Fail closed before anything else: relays are active-high.
 machine.Pin(RELAY_PIN, machine.Pin.OUT).value(0)
+machine.Pin(RELAY2_PIN, machine.Pin.OUT).value(0)
 
 # Grace period: gives mpremote a window to interrupt and enter raw REPL
 # before the background poll thread starts and starves USB access.
